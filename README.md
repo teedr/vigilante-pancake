@@ -1,5 +1,8 @@
-# mm-lint package
+# Mathematica Lexer/Parser
 
-A short description of your package.
+### To install:
 
-![A screenshot of your package](https://f.cloud.github.com/assets/69169/2290250/c35d867a-a017-11e3-86be-cd7c5bf3ff9b.gif)
+1. clone repository to a location
+2. run `apm install`
+3. run `apm link`
+4. open a `.m` file
