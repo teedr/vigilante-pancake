@@ -9,11 +9,13 @@ import com.wolfram.eclipse.MEET.projectmodel.MathematicaProjectModelManager;
 import com.wolfram.eclipse.MEET.editors.sourcemodel.variables.VariableData;
 import com.wolfram.eclipse.MEET.editors.sourcemodel.variables.VariableDataResult;
 import com.wolfram.eclipse.MEET.editors.sourcemodel.VariableLocator;
+import com.wolfram.eclipse.MEET.editors.sourcemodel.variables.LocalVariableTester;
 import com.wolfram.eclipse.MEET.utilities.*;
 import com.wolfram.mexpr.MExpr;
 import com.wolfram.mexpr.MSymbol;
 import com.wolfram.mexpr.IMExprToken;
 import java.io.ByteArrayOutputStream;
+import java.util.Map;
 import java.util.Iterator;
 import java.util.HashMap;
 import java.util.List;
@@ -23,10 +25,12 @@ import java.util.Set;
 public class FoxySheep {
 	
 	List localVariables_ = null;
-	ArrayList tokens_ = new ArrayList();
+	List<AtomToken> tokens_ = new ArrayList<AtomToken>();
 	public MathematicaSourceModel model;
 	VariableLocator varLocator_ = null;
 	DocumentBuffer sourceBuffer_ = null;
+	HashMap localVariablesMap_;
+	List changedLocalVariablePositions_ = new ArrayList();
 	
 	public FoxySheep () {	 // constructor
 		System.out.println("FoxySheep constructed");
@@ -58,11 +62,11 @@ public class FoxySheep {
 	}
 	
 	public void buildModelFromText(String text) {
-		
 		sourceBuffer_ = new DocumentBuffer(text);
 		model = new MathematicaSourceModel(sourceBuffer_,true);
-		model.setIncrementalLexing(true);
-		
+		//model.setIncrementalLexing(true);
+		getLocalVariablesMap();
+		//getVariableLocator();
 	}
 	
 	public void parseText(String text) throws Exception {
@@ -72,17 +76,7 @@ public class FoxySheep {
 	
 	public void parse() throws Exception {
 		
-		tokens_ = new ArrayList();
-		
-		VariableLocator varLocator = getVariableLocator();
-		System.out.println(varLocator);
-		
-		try {
-			Object lock = varLocator.getLockObject();
-			varLocator.startScan(0);
-		} catch (Exception ex) {
-			System.out.println(ex);
-		}
+		tokens_ = new ArrayList<AtomToken>();
 		
 		System.out.println("TOKS:");
 		int i=0;
@@ -101,31 +95,52 @@ public class FoxySheep {
 				i++;
 				continue;
 			}
-			VariableDataResult varResult = varLocator.getLength(tok.getCharStart());
+			VariableData varResult = (VariableData)localVariablesMap_.get(tok.getCharStart());
+
 			if (varResult == null) {
-				System.out.println("NONLOCAL");
-				System.out.println(tok.getText());
 				tokens_.add(new AtomToken(tok, false));
 			} else {
-				System.out.println("LOCAL");
 				tokens_.add(new AtomToken(tok, true));
 			}
 			i++;
 		}
 	}
 	
-	public void bufferChanged(String text, int offset, int length) throws Exception {
-		SourceBufferChangeEvent changeEvent = new DefaultSourceBufferChangeEvent(sourceBuffer_,offset-1,length+1,offset-1,length+1);
+	public int[] bufferChanged(String text, int offset, int length, String newText) throws Exception {
 		sourceBuffer_.set(text);
+		
+		SourceBufferChangeEvent changeEvent = new BufferChangeEvent(sourceBuffer_,offset,length,newText);
+		
 		model.addDocumentEvent(changeEvent);
+		
 		sourceBuffer_.fireChangeEvent(changeEvent);
+		ModelRegion updatedRegion;
+		
+		int minOffset = changeEvent.getMinOffset();
+		int maxLength = changeEvent.getMaxLength();
+		
 		try {
-			model.checkVars(offset,length);
+			updatedRegion = model.checkVars(minOffset,maxLength);
 		} catch (Exception ex) {
+			updatedRegion = null;
 			System.out.println(ex);
 		}
+		getLocalVariablesMap();
 		
 		parse();
+		
+		int[] span = new int[2];
+		
+		if (updatedRegion == null) {
+			span[0] = -1;
+			span[1] = 0;
+			return span;
+		}
+		
+		span[0] = updatedRegion.getOffset();
+		span[1] = updatedRegion.getLength();
+		
+		return span;
 	}
 	
 	public void bufferDoneChanging(int offset, int length) throws Exception {
@@ -138,6 +153,89 @@ public class FoxySheep {
 		parse();
 	}
 	
+	public class BufferChangeEvent implements SourceBufferChangeEvent {
+		SourceBuffer src_;
+		private final int length_;
+		private final int offset_;
+		int maxLength_;
+		int minOffset_;
+		private final String newText_;
+		
+		public BufferChangeEvent(SourceBuffer s, int offset, int length, String newText)
+		{
+			src_ = s;
+			offset_ = offset;
+			length_ = length;
+			minOffset_ = -1;
+			maxLength_ = -1;
+			newText_ = newText;
+		}
+		
+		public SourceBuffer getSource() {
+			return src_;
+		}
+		
+		public int getChangeNumber() {
+			return 0;
+		}
+		
+		public int getLength(int i) {
+			return length_;
+		}
+		
+		public int getOffset(int i) {
+			return offset_;
+		}
+		
+		public int getLength() {
+			return length_;
+		}
+		
+		public int getOffset() {
+			return offset_;
+		}
+		
+
+
+		public int getTextLength()
+		{
+			return newText_.length();
+		}
+		
+		public int getMaxLength() {
+			if (maxLength_ == -1) {
+				calculate();
+			}
+			return maxLength_;
+		}
+		
+		public int getMinOffset() {
+			if (minOffset_ == -1) {
+				calculate();
+			}
+			return minOffset_;
+		}
+		
+		void calculate() {
+
+			int testMin = offset_;
+			if (length_ > 0 && testMin > 0) {
+				testMin--;
+			}
+			
+			String text = newText_;
+			int len = text == null ? 0 : text.length();
+			if (len == 0) {
+				len = 2;
+			}
+			int testMax = testMin + len;
+			minOffset_ = testMin;
+			int maxOffset = testMax;
+			
+			maxLength_ = (maxOffset - minOffset_ + 1);
+		}
+	}
+	
 	public class DocumentBuffer
 	extends AbstractSourceBuffer {
 		
@@ -148,11 +246,7 @@ public class FoxySheep {
 		}
 		
 		public void fireChangeEvent(SourceBufferChangeEvent changeEvent) throws Exception {
-			
-			//SourceBuffer updatedBuffer = new StringSourceBufferImpl(text);
 			fireEvent(changeEvent);
-			//model.bufferChanged(changeEvent);
-			
 		}
 		
 		public int getLength() {
@@ -239,10 +333,45 @@ public class FoxySheep {
 	private VariableLocator getVariableLocator() {
 		if (varLocator_ == null) {
 			varLocator_ = new VariableLocator(model);
+			varLocator_.getLockObject();
+			varLocator_.startScan(0);
 		}
 		return varLocator_;
 	}
 	
+	public HashMap getLocalVariablesMap() {
+		
+		localVariablesMap_ = new HashMap();
+		
+		List localVariables = model.getLocalVariables();
+		
+		for (int i = 0; i < localVariables.size(); i++) {
+			VariableData var = (VariableData)localVariables.get(i);
+			int tokenIndex = var.fVariable.getCharStart();
+			int startOffset = model.startPositionFromTokenIndex(var.fVariable);
+			localVariablesMap_.put(startOffset,var);
+		}
+		
+		return localVariablesMap_;
+		
+	}
+	
+	public void fixLocalVariablePositions() {
+		
+		HashMap updatedMap = new HashMap();
+		Map<Integer, VariableData> map = (Map)localVariablesMap_;
+		
+		for (Map.Entry<Integer, VariableData> entry : map.entrySet()) {
+			VariableData var = (VariableData)entry.getValue();
+			int newStartOffset = model.startPositionFromTokenIndex(var.fVariable);
+			//int newIndex = model.getTokenIndexForOffset(newStartOffset);
+			updatedMap.put(newStartOffset,var);
+		}
+		
+		localVariablesMap_ = updatedMap;
+		
+	}
+		
 	public AtomToken[] getTokens() {
 		AtomToken[] tokList = new AtomToken[tokens_.size()];
 		for (int i = 0; i < tokens_.size(); i++) {
@@ -318,17 +447,6 @@ public class FoxySheep {
 			VariableData expr = (VariableData)(localVariables_.toArray()[i]);
 			dat[i] = expr;
 		}
-		
-		// for (Object o : localVariables_) {	
-		// 	VariableData expr = (VariableData)o;
-		// 	System.out.println(expr);
-		// 	System.out.println(expr.fVariable.getCharStart());
-		// 	dat.add(expr);
-		// 	System.out.println(expr.fVariable.getCharEnd());
-		// 	// variableLocator.startScan(expr.fVariable.getCharEnd());
-		// 	// VariableDataResult varResult = variableLocator.getLength(expr.fVariable.getCharEnd());
-		// 	// System.out.println(varResult.fType);
-		// }
 		
 		return dat;
 	}
