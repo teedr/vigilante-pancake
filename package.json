@@ -1,15 +1,17 @@
 {
   "name": "mm-lint",
   "main": "./lib/mm-lint",
-  "version": "0.0.0",
-  "description": "A short description of your package",
+  "version": "0.0.1",
+  "description": "A package to semantically lex/parse Mathematica files.",
   "keywords": [
   ],
-  "repository": "https://github.com/atom/mm-lint",
+  "repository": "https://github.com/teedr/vigilante-pancake",
   "license": "MIT",
   "engines": {
-    "atom": ">=1.0.0 <2.0.0"
+    "atom": ">=1.0.0 <2.0.0",
+    "node": ">=0.12.0"
   },
   "dependencies": {
+    "java": "^0.8.0"
   }
 }
