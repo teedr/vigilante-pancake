@@ -106,18 +106,35 @@ public class FoxySheep {
 		}
 	}
 	
-	public int[] bufferChanged(String text, int offset, int length, String newText) throws Exception {
+	public int[] bufferChanged(String text, int offset, int length, String newText, Boolean parseVars) throws Exception {
 		sourceBuffer_.set(text);
 		
 		SourceBufferChangeEvent changeEvent = new BufferChangeEvent(sourceBuffer_,offset,length,newText);
+		
+		int[] span = new int[2];
+		
+		int minOffset = changeEvent.getMinOffset();
+		int maxLength = changeEvent.getMaxLength();
+		
+		if (!parseVars) {
+			sourceBuffer_.fireChangeEvent(changeEvent);
+			parse();
+			span[0] = minOffset;
+			span[1] = maxLength;
+			return span;
+		}
 		
 		model.addDocumentEvent(changeEvent);
 		
 		sourceBuffer_.fireChangeEvent(changeEvent);
 		ModelRegion updatedRegion;
 		
-		int minOffset = changeEvent.getMinOffset();
-		int maxLength = changeEvent.getMaxLength();
+		if (!parseVars) {
+			parse();
+			span[0] = minOffset;
+			span[1] = maxLength;
+			return span;
+		}
 		
 		try {
 			updatedRegion = model.checkVars(minOffset,maxLength);
@@ -128,8 +145,6 @@ public class FoxySheep {
 		getLocalVariablesMap();
 		
 		parse();
-		
-		int[] span = new int[2];
 		
 		if (updatedRegion == null) {
 			span[0] = -1;
