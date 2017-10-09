@@ -133,15 +133,15 @@ public class FoxySheep {
 			tok = model.getToken(initialIndex);
 		}
 		catch (Exception ex) {
-			return initialIndex - 1;
+			return initialIndex;
 		}
 		
 		if (tok == null) {
-			return initialIndex - 1;
+			return initialIndex;
 		}
 				
 		if (!(tok.getText() == null || ((tok.getCharEnd() - tok.getCharStart() + 1) != tok.getText().length()))) {
-			return initialIndex - 1;
+			return initialIndex;
 		}
 		
 		int fixedIndex = initialIndex + 1;
@@ -654,9 +654,13 @@ public class FoxySheep {
 	}
 	
 	public AtomToken getTokenForOffset(int offset) {
-		int index = getTokenIndexForOffset(offset);
-		AtomToken tok = getTokenForIndex(index);
-		return tok;
+		int modelIndex = model.getTokenIndexForOffset(offset);
+		int fixedIndex = getFixedStartTokenIndex(modelIndex);
+		
+		IMExprToken modelToken = model.getToken(fixedIndex);
+
+		return new AtomToken(modelToken, false, fixedIndex);
+
 	}
 	
 	public int getTokenIndexForOffset(int offset)
