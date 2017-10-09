@@ -12,6 +12,19 @@
     "node": ">=0.12.0"
   },
   "dependencies": {
-    "java": "^0.8.0"
+    "java": "^0.8.0",
+    "atom-linter": "^10.0.0",
+    "atom-package-deps": "^4.0.1",
+    "first-mate": ">=1.7.0"
+  },
+  "package-deps": [
+    "linter:2.0.0"
+  ],
+  "providedServices": {
+    "linter": {
+      "versions": {
+        "2.0.0": "provideLinter"
+      }
+    }
   }
 }
