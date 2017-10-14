@@ -33,6 +33,7 @@ public class FoxySheep {
 	HashMap tokensMap_;
 	HashMap localVariablesMap_;
 	List changedLocalVariablePositions_ = new ArrayList();
+	Boolean fullyParsed_ = false;
 	
 	public FoxySheep () {	 // constructor
 		System.out.println("FoxySheep constructed");
@@ -66,7 +67,7 @@ public class FoxySheep {
 	public void buildModelFromText(String text) {
 		sourceBuffer_ = new DocumentBuffer(text);
 		model = new MathematicaSourceModel(sourceBuffer_,true);
-		//model.setIncrementalLexing(true);
+		model.setIncrementalLexing(false);
 		getLocalVariablesMap();
 		//getVariableLocator();
 	}
@@ -153,7 +154,7 @@ public class FoxySheep {
 		int startIndex = model.getTokenIndexForOffset(startOffset);
 		int endIndex = model.getTokenIndexForOffset(endOffset);
 		
-		int fixedStartIndex = getFixedStartTokenIndex(startIndex);
+		int fixedStartIndex = getFixedEndTokenIndex(startIndex);
 		int fixedEndIndex = getFixedEndTokenIndex(endIndex);
 		
 		List<AtomToken> newTokens = new ArrayList<AtomToken>();
@@ -308,8 +309,10 @@ public class FoxySheep {
 		int minOffset = changeEvent.getMinOffset();
 		int maxLength = changeEvent.getMaxLength();
 
-		model.addDocumentEvent(changeEvent);
+		//model.addDocumentEvent(changeEvent);
 		sourceBuffer_.fireChangeEvent(changeEvent);
+		
+		fullyParsed_ = false;
 		
 		return;
 	}
@@ -593,6 +596,10 @@ public class FoxySheep {
 	
 	public HashMap getLocalVariablesMap() {
 		
+		if (fullyParsed_) {
+			return localVariablesMap_;
+		}
+		
 		localVariablesMap_ = new HashMap();
 		
 		List localVariables = model.getLocalVariables();
@@ -603,6 +610,8 @@ public class FoxySheep {
 			int startOffset = model.startPositionFromTokenIndex(var.fVariable);
 			localVariablesMap_.put(startOffset,var);
 		}
+		
+		fullyParsed_ = true;
 		
 		return localVariablesMap_;
 		
