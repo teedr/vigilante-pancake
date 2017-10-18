@@ -150,6 +150,25 @@ public class FoxySheep {
 		return getFixedEndTokenIndex(fixedIndex);
 	} 
 	
+	public void shiftLocalVariableMap(int startOffset, int length) {
+		
+		HashMap<Integer,VariableData> updatedLocalVariablesMap = new HashMap<Integer,VariableData>();
+		Map<Integer, VariableData> map = new HashMap<Integer,VariableData>(localVariablesMap_);
+		
+		for (Map.Entry<Integer, VariableData> entry : map.entrySet()) {
+			int key = entry.getKey();
+			VariableData value = entry.getValue();
+			
+			if (key >= startOffset) {
+				updatedLocalVariablesMap.put(key+length,value);
+			} else {
+				updatedLocalVariablesMap.put(key,value);
+			}
+		}
+		
+		localVariablesMap_ = updatedLocalVariablesMap;
+	}
+	
 	public AtomToken[] getAtomTokensForRange(int startOffset, int endOffset) {
 		
 		int startIndex = model.getTokenIndexForOffset(startOffset);
@@ -325,6 +344,9 @@ public class FoxySheep {
 			}
 		}
 		
+		int shift = newText.length() - length;
+		shiftLocalVariableMap(offset, shift);
+		
 		fullyParsed_ = false;
 		
 		return;
@@ -361,15 +383,15 @@ public class FoxySheep {
 		}
 		
 		getLocalVariablesMap();
-		if (span[0] == -1) {
-			return span;
-		}
 		
 		if (forceReparse_) {
 			span[1] = model.getSourceBuffer().getLength();
+			if (span[0] == -1) {
+				span[0] = minOffset;
+			}
+			forceReparse_ = false;
 		}
 		
-		forceReparse_ = false;
 		return span;
 	}
 	
@@ -623,7 +645,7 @@ public class FoxySheep {
 			return localVariablesMap_;
 		}
 		
-		localVariablesMap_ = new HashMap();
+		localVariablesMap_ = new HashMap<Integer,VariableData>();
 		
 		List localVariables = model.getLocalVariables();
 		
