@@ -1,0 +1,4 @@
+'.source.mathematica-semantic':
+  editor:
+    commentStart: '(* '
+    commentEnd: ' *)'
