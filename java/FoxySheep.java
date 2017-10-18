@@ -34,6 +34,7 @@ public class FoxySheep {
 	HashMap localVariablesMap_;
 	List changedLocalVariablePositions_ = new ArrayList();
 	Boolean fullyParsed_ = false;
+	Boolean forceReparse_ = false;
 	
 	public FoxySheep () {	 // constructor
 		System.out.println("FoxySheep constructed");
@@ -308,6 +309,7 @@ public class FoxySheep {
 	public void tokenizeChange(String text, int offset, int length, String newText, Boolean parseVars) throws Exception {
 		sourceBuffer_.set(text);
 		
+		AtomError[] existingErrors = getErrors();
 		SourceBufferChangeEvent changeEvent = new BufferChangeEvent(sourceBuffer_,offset,length,newText);
 		
 		int minOffset = changeEvent.getMinOffset();
@@ -315,6 +317,17 @@ public class FoxySheep {
 
 		//model.addDocumentEvent(changeEvent);
 		sourceBuffer_.fireChangeEvent(changeEvent);
+		
+		//AtomError[] errors = getErrors();
+		for (AtomError err : existingErrors) {
+			// unterminated token types
+			if (err.start <= offset) {
+				if (err.type==8 || err.type==12 || err.type==13) {
+					forceReparse_ = true;
+					break;
+				}
+			}
+		}
 		
 		fullyParsed_ = false;
 		
@@ -352,7 +365,15 @@ public class FoxySheep {
 		}
 		
 		getLocalVariablesMap();
-
+		if (span[0] == -1) {
+			return span;
+		}
+		
+		if (forceReparse_) {
+			span[1] = model.getSourceBuffer().getLength();
+		}
+		
+		forceReparse_ = false;
 		return span;
 	}
 	
@@ -577,6 +598,7 @@ public class FoxySheep {
 		public String longText;
 		public int start;
 		public int end;
+		public int type;
 		public Boolean warning;
 		
 		public AtomError(SyntaxError error) {
@@ -585,6 +607,7 @@ public class FoxySheep {
 			longText = error.getLongText();
 			start = error.getCharStart();
 			end = error.getCharEnd();
+			type = error.getType();
 			warning = error.isWarning();
 		}
 	}
