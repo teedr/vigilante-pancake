@@ -30,8 +30,7 @@ public class FoxySheep {
 	public MathematicaSourceModel model;
 	VariableLocator varLocator_ = null;
 	DocumentBuffer sourceBuffer_ = null;
-	HashMap tokensMap_;
-	HashMap localVariablesMap_;
+	HashMap<Integer,VariableData> localVariablesMap_;
 	List changedLocalVariablePositions_ = new ArrayList();
 	Boolean fullyParsed_ = false;
 	Boolean forceReparse_ = false;
@@ -81,7 +80,6 @@ public class FoxySheep {
 	public void parse(int start) throws Exception {
 		
 		tokens_ = new ArrayList<AtomToken>();
-		tokensMap_ = new HashMap();
 		
 		System.out.println("TOKS:");
 		int i=start;
@@ -106,11 +104,9 @@ public class FoxySheep {
 			if (varResult == null) {
 				AtomToken atomTok = new AtomToken(tok, false, i);
 				tokens_.add(atomTok);
-				tokensMap_.put(i,atomTok);
 			} else {
 				AtomToken atomTok = new AtomToken(tok, true, i);
 				tokens_.add(atomTok);
-				tokensMap_.put(i,atomTok);
 			}
 			i++;
 		}
@@ -659,22 +655,6 @@ public class FoxySheep {
 		return atomErrors;
 	}
 	
-	public void fixLocalVariablePositions() {
-		
-		HashMap updatedMap = new HashMap();
-		Map<Integer, VariableData> map = (Map)localVariablesMap_;
-		
-		for (Map.Entry<Integer, VariableData> entry : map.entrySet()) {
-			VariableData var = (VariableData)entry.getValue();
-			int newStartOffset = model.startPositionFromTokenIndex(var.fVariable);
-			//int newIndex = model.getTokenIndexForOffset(newStartOffset);
-			updatedMap.put(newStartOffset,var);
-		}
-		
-		localVariablesMap_ = updatedMap;
-		
-	}
-		
 	public AtomToken[] getTokens() {
 		AtomToken[] tokList = new AtomToken[tokens_.size()];
 		for (int i = 0; i < tokens_.size(); i++) {
