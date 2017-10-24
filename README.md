@@ -2,7 +2,7 @@
 
 vigilante-pancake is a mathematica lexer and parser capable of semantic highlighting mirroring _mathematica_'s or _workbench_'s editor
 
-![variable scoping](https://i.imgur.com/Mj4DVQB.png)
+![variable scoping](https://i.imgur.com/QhQMhLL.png)
 
 ![error recognition](https://i.imgur.com/gYuuerW.png)
 
