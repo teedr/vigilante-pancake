@@ -8,6 +8,10 @@ vigilante-pancake is a mathematica lexer and parser capable of semantic highligh
 
 ## Installation
 
+### Clone Repo
+1. clone repository to some location on your machine
+2. `cd` to the cloned repository
+
 ### Dependencies
 - Automated installation of all dependencies is proving to be reliably unreliable
 - The following prerequisites are a manual installation of [`node-java`](https://github.com/joeferner/node-java) so if already have `node-java` installed or prefer to install it using your own methods, you can skip these steps
@@ -33,17 +37,21 @@ Notes:
 - [This issue](https://github.com/TooTallNate/node-gyp/issues/155) may be helpful for a common error during windows install
 
 #### node-java
-Follow the install instructions found [here](https://github.com/joeferner/node-java)
+
+#### OSX
+	`npm install java`
+
+#### Windows
+	`npm install java --arch=ia32`
 
 Notes:
+- If you run into trouble here, more install instructions can be found [here](https://github.com/joeferner/node-java)
 - The `node-java` install instructions includes some instructions for `node-gyp` installation. If you are having trouble installing `node-gyp`, the suggestions on `node-java`'s readme may be useful.
 
 ### Plugin Installation
 - At the point, the remaining dependencies can be installed automatically via plugin installation
 
-To install the plugin: 
-1. clone repository to some location on your machine
-2. `cd` to the cloned repository
+From the cloned plugin repository: 
 3. run `apm install`
 4. run `apm link`
 5. if atom is already open, restart atom
